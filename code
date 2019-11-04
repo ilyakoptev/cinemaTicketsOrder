@@ -1,0 +1,477 @@
+using System;
+
+namespace ConsoleApp1
+{
+    class Program
+
+    {
+
+        static void Main(string[] args)
+
+        {
+            // --- class users - not in use yet 
+            Customers customer = new Customers();
+            Users user = new Users();
+            string[,] places = new string[10, 10];
+            Customers[] customers = new Customers[100]; // array of customers orders
+            Users[] users = new Users[100]; // array of customers orders
+
+            for (int i = 0; i < customers.Length; i++)
+            {
+                customers[i]= new Customers();
+            }
+            for (int i = 0; i < users.Length; i++)
+            {
+                users[i] = new Users();
+            }
+            int index = 0 ; //index for customers array
+            int indexUsers = 0 ; 
+
+           // int indexUsers = initRegisteredUsers(users);  // init registered user by hardcoded insert names
+            //int index = initSeatOrders(customers); // init some tickets orders and return number of ordered tickets
+
+
+            initPlaces(places, customers, index); // set all free places by "-" 
+
+
+            string next;
+            string flag;
+
+            do
+            {
+                Console.WriteLine("Hello! Please choose operation would you like to do: ");
+                Console.WriteLine("1 - To make a new order");
+                Console.WriteLine("2 - To view exists orders ");
+                Console.WriteLine("3 - To display free seats ");
+                Console.WriteLine("4 - To view list of registered customers ");
+                Console.WriteLine("5 - To search user by place number ");
+                Console.WriteLine("6 - To cancel exist orders ");
+
+                Console.Write(" => ");
+                int menu = int.Parse(Console.ReadLine());
+                next = "n"; // if want to continue operations 
+                int ext;
+                switch (menu)
+                {
+                    case 1:
+                        {
+                            flag = "n"; // "n" - first order for current customer 
+                            user = getData(); // 
+                            ext = -1;
+                            ext = searchUser(user, users); // return or "-1" if not exits and i if exits (i - index in array)
+                            //Console.WriteLine("Current user is :  {0} {1}", user.Name, user.Telephone);
+                            //Console.WriteLine("ext :  {0} ", ext);
+                            if (ext == -1)
+                            {
+                                Console.WriteLine("Customer not found");
+                                users[indexUsers] = user;
+                                Console.WriteLine("Added new customer - Name: {0}, Telephone: {1} !", users[indexUsers].Name, users[indexUsers].Telephone);
+                                indexUsers++;// 
+                            }
+                            else
+                            {
+                                user = users[ext]; // set current customer for future order
+                            }
+
+                           
+                            customers[index].Name = user.Name; // insert users ot customers array for provide ticket order 
+                            customers[index].Telephone = user.Telephone;
+
+
+                            do
+                            {
+                                if (checkFreeSeat(places))
+                                {
+                                    customer = customers[index];
+
+                                    getOrder(customer, places, flag); // get order from user 
+
+
+                                    Console.WriteLine("Current order is => Name: {0}, Telephone: {1}, Row: {2}, Seat: {3}", customers[index].Name, customers[index].Telephone, customers[index].Row + 1, customers[index].Seat + 1);
+
+                                    places[customer.Row, customer.Seat] = "x"; // catch the place
+
+                                    index++;   // next customer in array
+
+                                    Console.Write("Would you like to order another ticket for this customer? y / n ");
+                                    flag = Console.ReadLine();
+                                    if (flag == "y")
+                                    {
+
+                                        customers[index].Name = user.Name; // insert users ot customers array for provide ticket order 
+                                        customers[index].Telephone = user.Telephone;
+                                        customers[index].Row = customers[index - 1].Row;
+                                        customers[index].Seat = customers[index - 1].Seat;
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Sold out!!!");
+                                }
+                            }
+                            while (flag == "y");
+                           
+                        }
+                        break;
+                    case 2: //To view exists orders
+                        Console.WriteLine("Number of previus orders is : {0}", index);
+                        
+                        for (int y = 0; y < index; y++)
+                        {
+                            customers[y].PrintUserDetails();  // print all customer data
+                        }
+                        break;
+
+                    case 3: //To display free seats
+                        displayFreePlaces(places); // show table with free places 
+                        break;
+
+                    case 4: // display registered users 
+                        Console.WriteLine("List of the registered users : {0}", indexUsers);
+                        for (int a = 0; a < indexUsers; a++)
+                        {
+                            Console.WriteLine("User number {2}: Name: {0}, Telephone: {1}", users[a].Name, users[a].Telephone, a + 1);
+                        }
+                        break;
+                   
+                   case 5:  // cancel order
+                        {
+                            if (index == 0)
+                            {
+                                Console.WriteLine("Do not have any orders");
+                            }
+                            else
+                            {
+                                user = searchUserBySeat(customers);
+                                if (user.Name == "None")
+                                    Console.WriteLine("This place is free");
+                                else
+                                    Console.WriteLine("User on this seat is  - Name: {0}, Telephone: {1} ", user.Name, user.Telephone);
+                            }
+                        }
+                        break;
+                       
+                    case 6:  // cancel order
+                        {
+                            if (index == 0)
+                            {
+                                Console.WriteLine("Do not have any orders");
+                            }
+                            else
+                            {
+                                deletePlaceOrder(ref places, customers, out customers);
+                                index--;
+                            }
+                        }
+                        break;
+
+                    default:
+                        Console.WriteLine("Wrong choose! Please try again!");
+                        next = "y";
+                        break;
+                }
+
+
+                //ask if we want to do another operation
+                do
+                {
+                    Console.Write("Do yo want to prefer an another operation? (y/n) ");
+                    next = Console.ReadLine();
+                }
+                while (next!="y" && next!="n");
+            }
+            while (next == "y");
+            Console.WriteLine("Press Enter Key to Exit..");
+            Console.ReadLine(); 
+
+           
+        }
+
+        //**************************************************************************
+        static void deletePlaceOrder(ref string[,] places, Customers[] customers, out Customers[] customersCopy)
+        {
+            customersCopy = new Customers[100]; //copy of  array of customers orders
+            for (int i = 0; i < customersCopy.Length; i++)
+            {
+                customersCopy[i] = new Customers();
+            }
+            Console.Write(" Please enter customer name : ");
+            string customerName = Console.ReadLine();
+            Console.Write(" Please enter customer number: ");
+            string customerTelephone = Console.ReadLine();
+            Console.Write(" Please enter row : ");
+            int row = int.Parse(Console.ReadLine());
+            Console.Write(" Please enter seat number: ");
+            int seat = int.Parse(Console.ReadLine());
+          
+            for (int i = 0, y = 0; i < customers.Length; i++)
+            {
+                if (customerName == customers[i].Name && customerTelephone == customers[i].Telephone && row-1 == customers[i].Row && seat-1 == customers[i].Seat)
+                {
+                    places[row-1, seat-1] = "-";
+                    Console.WriteLine("Your order for this seat was canceled!!!");
+                 
+                }
+                else
+                {
+                   
+                    customersCopy[y].Name = customers[i].Name;
+                    customersCopy[y].Telephone = customers[i].Telephone;
+                    customersCopy[y].Row = customers[i].Row;
+                    customersCopy[y].Seat = customers[i].Seat;
+                    y++;
+                }
+            }
+        }
+
+
+        static Users searchUserBySeat(Customers[] customers)
+        {
+            Users user = new Users();
+            user.Name = "None";
+            user.Telephone = "None";
+            Console.Write(" Please enter row number: ");
+            int row = int.Parse(Console.ReadLine());
+            Console.Write(" Please enter seat number: ");
+            int seat = int.Parse(Console.ReadLine());
+
+            for (int i = 0; i < customers.Length; i++)
+            {
+               if(customers[i].Row == row-1 && customers[i].Seat == seat-1)
+                {
+                    user.Name = customers[i].Name;
+                    user.Telephone = customers[i].Telephone;
+                }
+            }
+
+            return user;
+        }
+
+
+        static bool checkFreeSeat(string[,] places)
+        {
+            int index = 0;
+            for (int i = 0; i < places.GetLength(0); i++)
+            {
+                for (int z = 0; z < places.GetLength(1); z++)
+                    if(places[i, z] == "x"){
+                    index++;
+                    }
+            }
+            if (index == 100)
+                return false;
+            else
+                return true;
+
+        }
+
+        
+        static int initRegisteredUsers(Users[] users) {
+           // Customers customer = new Customers(); 
+            users[0].getCustomers("Den", "0503489237");
+            users[1].getCustomers("Anat", "0503489221");
+            users[2].getCustomers("Fil", "0503483237");
+            users[3].getCustomers("Ben", "0503459237");
+            users[4].getCustomers("Roman", "0505689237");
+            users[5].getCustomers("Stef", "0503445237");
+            users[6].getCustomers("Mark", "0505050505");
+            return 7;
+        }
+
+        static int initSeatOrders(Customers[] customers)
+        {
+            // Customers customer = new Customers(); 
+            customers[0].getCustomers("Den", "0503489237");
+            customers[0].getPlace(3, 4);
+            customers[1].getCustomers("Anat", "0503489221");
+            customers[1].getPlace(3, 5);
+            customers[2].getCustomers("Fil", "0503483237");
+            customers[2].getPlace(3, 6);
+            customers[3].getCustomers("Ben", "0503459237");
+            customers[3].getPlace(8, 1);
+            customers[4].getCustomers("Roman", "0505689237");
+            customers[4].getPlace(6, 9);
+            customers[5].getCustomers("Stef", "0503445237");
+            customers[5].getPlace(7, 7);
+            customers[6].getCustomers("Mark", "0505050505");
+            customers[6].getPlace(1, 5);
+            customers[7].getCustomers("Ilya", "0504451682");
+            customers[7].getPlace(5, 5);
+            customers[8].getCustomers("Ilya", "0504451682");
+            customers[8].getPlace(5, 6);
+            customers[9].getCustomers("Mark", "0505050505");
+            customers[9].getPlace(10, 5);
+            return 10;
+        }
+
+        static int searchUser(Users user, Users[] users)
+        {
+           // Console.Write("Looking for customer {0} {1} : ", user.Name,user.Telephone);
+            //check if customer exits in data base 
+            for (int i = 0; i < users.Length; i++)
+            {
+                if (users[i].Name == user.Name && users[i].Telephone == user.Telephone)
+                {
+                    Console.WriteLine("User exists, please order the ticket => ");
+                    return i;
+                     //customer exists 
+                }
+                 
+            }
+            return -1; // insert a new customer again 
+        }
+
+
+        static void initPlaces(string[,] places, Customers[] customers, int count)
+        {
+           
+            for (int i = 0; i < places.GetLength(0); i++)
+            {
+                for (int z = 0; z < places.GetLength(1); z++) {
+                    if (count == 0)
+                    {
+                        places[i, z] = "-";
+                    }
+                    else
+                    {
+                        for (int n = 0; n < count; n++)
+                        {
+                            if (customers[n].Row == i && customers[n].Seat == z)
+                            {
+                                places[i, z] = "x";
+                                break;
+                            }
+
+                            else
+                                places[i, z] = "-";
+                        }
+                    }
+                }   
+            }
+        }
+
+       
+        static Users getData()
+        {
+            Users user = new Users();
+            Console.Write("Please enter customer name: ");
+            string customerName  = Console.ReadLine();
+            Console.Write("Please enter customer number: ");
+            string customertelephone = Console.ReadLine();
+
+            user.getCustomers(customerName, customertelephone);
+            return user;
+        }
+
+        static void getOrder(Customers customer, string[,] places, string flag)
+        {
+            int row, seat;
+            string answer;
+            do
+            {
+                do
+                {
+                    do
+                    {
+                        answer = "n";
+                        Console.Write("Please enter number of row : ");
+                        row = int.Parse(Console.ReadLine());
+                        Console.Write("Please enter number of seat : ");
+                        seat = int.Parse(Console.ReadLine());
+                        if(row > places.GetLength(0) || row <= 0 || seat <= 0 || seat > places.GetLength(0))
+                        {
+                            Console.Write("Please enter row and seat in range 1-10 =>");
+                        }
+                    }
+                    while (row > places.GetLength(0)|| row <=0 || seat <=0 || seat > places.GetLength(0));
+                    if (flag=="y")                    // flag to check of the first order for this customer "n" - first order, "y" - continue to order 
+                       if (!( row-1==customer.Row && (seat== customer.Seat || seat -1 == customer.Seat || seat-2 == customer.Seat)))
+                       {
+                        Console.Write("You have not chosen a chair nearby, do you want to pick another one? y/n ");
+                        answer = Console.ReadLine();
+                       }
+                }
+                while (answer == "y");    
+                    //check if seat available
+
+                if ((places[row - 1, seat - 1] == "x"))
+                    Console.WriteLine("This seat is not free! Please peack an other one! ");
+
+            }
+            while (places[row-1, seat-1] == "x");
+            customer.getPlace(row, seat);
+            //  return customer;
+        }
+
+        static void displayFreePlaces(string[,] places)
+        {
+            // Users customer = new Users("Suresh Dasari", 30);
+            Console.WriteLine("Look to the all free seats:");
+            for (int i = 0; i < places.GetLength(0); i++)
+            {
+                for (int z = 0; z < places.GetLength(1); z++)
+                    Console.Write(" {0} ", places[i, z]);
+                Console.WriteLine();
+            }
+
+            //  return customer;
+        }
+
+    }
+    public class Users
+    {
+        public string Name;
+        public string Telephone;
+
+        public void getCustomers(string name, string telephone)
+
+        {
+
+            Name = name;
+            Telephone = telephone;
+
+        }
+    }
+
+    // class user - not in use yet 
+    public class Customers
+
+    {
+
+        public string Name;
+        public string Telephone;
+        public int Row;
+        public int Seat;
+       
+        public void getCustomers(string name, string telephone)
+
+        {
+
+            Name = name;
+            Telephone = telephone;
+       
+        }
+
+        public void getPlace (int row, int seat)
+        {
+            Row = row - 1 ;
+            Seat = seat - 1;
+            
+        }
+
+        public void PrintUserDetails()
+
+        {
+            Console.WriteLine("----------------------");
+            Console.WriteLine("Name: {0}, telephone: {1}", Name, Telephone);
+            Console.WriteLine("Row: {0}, Seat: {1}", Row +1 , Seat+1);
+            Console.WriteLine("-----------------------");
+
+        }
+
+    }
+
+
+}
+
+
